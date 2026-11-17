@@ -20,7 +20,7 @@ const SHOT = params.get('shot');
 
 const canvas = document.getElementById('game-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -51,7 +51,7 @@ const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 20
 const sun = new THREE.DirectionalLight(0xffd9a0, 2.4);
 sun.position.set(-260, 190, 140);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(1024, 1024);
 sun.shadow.camera.left = -260; sun.shadow.camera.right = 260;
 sun.shadow.camera.top = 260; sun.shadow.camera.bottom = -260;
 sun.shadow.camera.far = 900;
@@ -101,7 +101,7 @@ const parkedSpots = [
   { x: -208, z: -92, heading: -Math.PI / 2, kind: 'sedan' },
   { x: 292, z: -8, heading: Math.PI / 2, kind: 'sedan' },
   { x: -292, z: 108, heading: -Math.PI / 2, kind: 'taxi' },
-  { x: 24, z: 18, heading: Math.PI / 2, kind: 'sport', color: 0xff2d55 },
+  { x: -8, z: 24, heading: 0, kind: 'sport', color: 0xff2d55 },
   { x: -108, z: 292, heading: 0, kind: 'sedan' },
 ];
 G.traffic.spawnInitial(14, parkedSpots);
@@ -193,7 +193,7 @@ G.enterCar = function (car, silent) {
     // Stealing an occupied car: the driver bails, the law notices.
     car.driver = false;
     G.peds.scare(car.x, car.z, 10);
-    G.addHeat(80, 'Grand theft auto');
+    G.addHeat(130, 'Grand theft auto');
     G.hud.feed('You jacked a car. The PSPD noticed.');
     G.audio.horn();
   } else if (car.isCop && !silent) {
@@ -451,7 +451,7 @@ function tick() {
       car.speed *= 0.45;
       car.health -= 12;
       G.audio.crash();
-      G.hud.flashDamage();
+      if (!G.shotMode) G.hud.flashDamage();
     }
     // Running over pedestrians.
     for (const ped of G.peds.peds) {
@@ -524,7 +524,7 @@ function tick() {
 // ---- Boot --------------------------------------------------------------------------
 if (SHOT) applyShot(G, SHOT);
 G.hud.setCash(G.cash);
-G.hud.updateWanted(0);
+G.hud.updateWanted(G.police.stars);
 G.hud.setClock(G.clockHours);
 G.hud.setDay(G.day);
 window.__solara = G;

@@ -37,7 +37,9 @@ export class PoliceSystem {
   }
 
   setStars(n, game) {
-    this.heat = n === 0 ? 0 : STAR_LIMITS[n] + 5;
+    // Set heat to the middle of the star's band, so a few seconds of decay
+    // do not immediately drop a star.
+    this.heat = n === 0 ? 0 : n >= 5 ? 950 : STAR_LIMITS[n] + Math.floor((STAR_LIMITS[n + 1] - STAR_LIMITS[n]) / 2);
     this.stars = n;
     if (game) game.hud.updateWanted(n);
   }
@@ -57,15 +59,28 @@ export class PoliceSystem {
   }
 
   spawnCopCarNear(x, z) {
-    const angle = Math.random() * Math.PI * 2;
-    const d = 55 + Math.random() * 40;
-    const sx = clamp(x + Math.cos(angle) * d, -440, 440);
-    const sz = clamp(z + Math.sin(angle) * d, -440, 440);
-    // Snap to the nearest road line so the car starts on asphalt.
-    const rx = Math.round(sx / 100) * 100;
-    const rz = Math.round(sz / 100) * 100;
+    // Spawn on the same road the player is on, 35-60 m away, so the pursuit
+    // starts close and the wanted level does not decay from distance.
+    const roadX = Math.round(x / 100) * 100;
+    const roadZ = Math.round(z / 100) * 100;
+    const onVertical = Math.abs(x - roadX) < 30;
+    const onHorizontal = Math.abs(z - roadZ) < 30;
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    const dist = 35 + Math.random() * 25;
+    let sx, sz;
+    if (onVertical && (!onHorizontal || Math.random() < 0.5)) {
+      sx = roadX;
+      sz = clamp(z + dir * dist, -440, 440);
+    } else if (onHorizontal) {
+      sz = roadZ;
+      sx = clamp(x + dir * dist, -440, 440);
+    } else {
+      const angle = Math.random() * Math.PI * 2;
+      sx = clamp(Math.round((x + Math.cos(angle) * dist) / 100) * 100, -400, 400);
+      sz = clamp(Math.round((z + Math.sin(angle) * dist) / 100) * 100, -400, 400);
+    }
     const mesh = createCarMesh(0x1a1a22, 'cop');
-    const car = new Car(mesh, rx, rz, Math.atan2(x - rx, z - rz), { kind: 'cop', isCop: true, maxSpeed: 44 });
+    const car = new Car(mesh, sx, sz, Math.atan2(x - sx, z - sz), { kind: 'cop', isCop: true, maxSpeed: 44 });
     this.scene.add(mesh);
     this.copCars.push(car);
     return car;

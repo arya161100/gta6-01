@@ -72,7 +72,7 @@ export class MissionSystem {
 
   buildBeacon() {
     const geo = new THREE.CylinderGeometry(2.2, 2.2, 60, 16, 1, true);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xffb020, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false });
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffb020, transparent: true, opacity: 0.34, side: THREE.DoubleSide, depthWrite: false });
     this.beacon = new THREE.Mesh(geo, mat);
     this.beacon.position.y = 30;
     this.beacon.visible = false;
@@ -110,7 +110,7 @@ export class MissionSystem {
 
   spawnGoldCar() {
     const mesh = createCarMesh(0xffd700, 'sport');
-    const car = new Car(mesh, 24, 18, Math.PI / 2, { kind: 'sport', driver: false, maxSpeed: 46 });
+    const car = new Car(mesh, 8, -24, 0, { kind: 'sport', driver: false, maxSpeed: 46 });
     car.parked = true;
     car.missionCar = true;
     this.scene.add(mesh);

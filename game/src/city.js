@@ -18,11 +18,11 @@ export const CITY = {
 export const PLACES = {
   plaza: { x: 0, z: 0, name: 'Solara Plaza' },
   marina: { x: 430, z: 120, name: 'Marina' },
-  garage: { x: -350, z: -350, name: "Rico's Garage" },
+  garage: { x: -300, z: -300, name: "Rico's Garage" },
   docks: { x: 430, z: -200, name: 'The Docks' },
-  bank: { x: 50, z: -50, name: 'Solara National Bank' },
-  safehouse: { x: -350, z: 350, name: 'Safehouse' },
-  warehouse: { x: 350, z: 350, name: 'Warehouse 9' },
+  bank: { x: 100, z: -100, name: 'Solara National Bank' },
+  safehouse: { x: -300, z: 300, name: 'Safehouse' },
+  warehouse: { x: 300, z: 300, name: 'Warehouse 9' },
   beach: { x: 470, z: 250, name: 'Solara Beach' },
 };
 
@@ -35,16 +35,12 @@ function groundTexture() {
   g.fillStyle = '#5d7a4a'; g.fillRect(0, 0, S, S);
   // City slab.
   g.fillStyle = '#8a8f96'; g.fillRect(toPx(-450), toPx(-450), toPx(450) - toPx(-450), toPx(450) - toPx(-450));
-  // Blocks (sidewalk-coloured) with roads between them.
+  // Blocks sit BETWEEN the roads: their centres are offset half a grid step
+  // from the road lines, so no building ever protrudes onto the asphalt.
   const road = CITY.roadWidth, step = CITY.roadStep;
-  for (let i = -4; i <= 4; i++) {
-    for (let j = -4; j <= 4; j++) {
-      const bx = i * step, bz = j * step;
-      if (i === 0 && j === 0) { // central park
-        g.fillStyle = '#4e7d3f';
-        g.fillRect(toPx(bx - 42), toPx(bz - 42), toPx(bx + 42) - toPx(bx - 42), toPx(bz + 42) - toPx(bz - 42));
-        continue;
-      }
+  for (let i = -5; i <= 4; i++) {
+    for (let j = -5; j <= 4; j++) {
+      const bx = i * step + 50, bz = j * step + 50;
       g.fillStyle = '#b9b3a4';
       g.fillRect(toPx(bx - 42), toPx(bz - 42), toPx(bx + 42) - toPx(bx - 42), toPx(bz + 42) - toPx(bz - 42));
     }
@@ -62,9 +58,13 @@ function groundTexture() {
     g.beginPath(); g.moveTo(toPx(-450), toPx(k * step)); g.lineTo(toPx(450), toPx(k * step)); g.stroke();
   }
   g.setLineDash([]);
-  // Crosswalks at every intersection.
+  // Central park plaza over the crossroads at (0, 0).
+  g.fillStyle = '#4e7d3f';
+  g.fillRect(toPx(-42), toPx(-42), toPx(42) - toPx(-42), toPx(42) - toPx(-42));
+  // Crosswalks at every intersection except the park plaza.
   g.fillStyle = 'rgba(255,255,255,0.75)';
   for (let i = -4; i <= 4; i++) for (let j = -4; j <= 4; j++) {
+    if (i === 0 && j === 0) continue;
     const x = toPx(i * step), z = toPx(j * step);
     for (let s = -3; s <= 3; s++) {
       g.fillRect(x - 14 + s * 4, z - 12, 2.5, 24);
@@ -132,11 +132,12 @@ export function buildCity(scene) {
   const roofMat = new THREE.MeshLambertMaterial({ color: 0x4a4640 });
   const boxGeo = new THREE.BoxGeometry(1, 1, 1);
 
-  // Buildings, one block at a time. Downtown (near centre) goes taller.
-  for (let i = -4; i <= 4; i++) {
-    for (let j = -4; j <= 4; j++) {
-      if (i === 0 && j === 0) continue; // central park
-      const cx = i * 100, cz = j * 100;
+  // Buildings, one block at a time. Blocks are centred between the roads
+  // (offset +50), so buildings never touch the asphalt. Downtown (near the
+  // centre) goes taller.
+  for (let i = -5; i <= 4; i++) {
+    for (let j = -5; j <= 4; j++) {
+      const cx = i * 100 + 50, cz = j * 100 + 50;
       const distC = Math.hypot(cx, cz);
       const n = 1 + Math.floor(rng() * 3);
       for (let k = 0; k < n; k++) {
@@ -172,6 +173,7 @@ export function buildCity(scene) {
   for (let t = 0; t < 14; t++) {
     const x = range(rng, -36, 36), z = range(rng, -36, 36);
     if (Math.hypot(x, z) < 8) continue;
+    if (Math.abs(x) < 12 || Math.abs(z) < 12) continue; // keep the crossroads clear
     const trunk = new THREE.Mesh(trunkGeo, trunkMat);
     trunk.position.set(x, 3, z); trunk.castShadow = true;
     const crown = new THREE.Mesh(crownGeo, leafMat);
