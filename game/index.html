@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOLARA HEAT — Open World</title>
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0b1020; font-family: 'Segoe UI', system-ui, sans-serif; }
+  #game-canvas { display: block; width: 100%; height: 100%; }
+  .hidden { display: none !important; }
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; pointer-events: none; color: #fff; z-index: 5; }
+  #hud-top-left { position: absolute; top: 14px; left: 16px; text-shadow: 0 2px 6px rgba(0,0,0,.8); }
+  #cash { font-size: 30px; font-weight: 800; letter-spacing: 1px; color: #7dff9b; }
+  #cash small { font-size: 15px; color: #cfe; font-weight: 600; }
+  #objective { margin-top: 6px; max-width: 380px; font-size: 15px; line-height: 1.35; background: rgba(8,12,28,.55); border-left: 4px solid #ffb020; padding: 8px 10px; border-radius: 4px; }
+  #objective b { color: #ffb020; }
+  #objective .dist { color: #9fd8ff; font-weight: 700; }
+  #wanted { position: absolute; top: 14px; right: 16px; font-size: 30px; letter-spacing: 4px; text-shadow: 0 2px 8px rgba(0,0,0,.9); }
+  #wanted .star { color: #222; -webkit-text-stroke: 1px #888; }
+  #wanted .star.on { color: #ffd23e; -webkit-text-stroke: 1px #a86f00; }
+  #clock { position: absolute; top: 58px; right: 18px; font-size: 15px; font-weight: 700; text-shadow: 0 2px 6px rgba(0,0,0,.8); text-align: right; }
+  #health-wrap { position: absolute; left: 16px; bottom: 16px; width: 240px; }
+  #health-label { font-size: 12px; font-weight: 700; letter-spacing: 2px; opacity: .9; text-shadow: 0 1px 4px rgba(0,0,0,.8); }
+  #health-bar { height: 12px; background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.35); border-radius: 6px; overflow: hidden; margin-top: 3px; }
+  #health-fill { height: 100%; width: 100%; background: linear-gradient(90deg,#37d67a,#a5f2c0); transition: width .2s; }
+  #ammo { margin-top: 5px; font-size: 15px; font-weight: 700; text-shadow: 0 1px 4px rgba(0,0,0,.8); }
+  #speed { position: absolute; right: 232px; bottom: 16px; text-align: right; text-shadow: 0 2px 6px rgba(0,0,0,.8); }
+  #speed-num { font-size: 40px; font-weight: 800; line-height: 1; }
+  #speed-unit { font-size: 13px; font-weight: 700; opacity: .85; }
+  #minimap { position: absolute; right: 16px; bottom: 16px; width: 200px; height: 200px; border-radius: 50%; border: 3px solid rgba(255,255,255,.75); box-shadow: 0 0 0 3px rgba(0,0,0,.5), 0 4px 18px rgba(0,0,0,.6); background: #0d1a2a; }
+  #crosshair { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; }
+  #crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,.9); box-shadow: 0 0 3px #000; }
+  #crosshair::before { left: 10px; top: 0; width: 2px; height: 22px; }
+  #crosshair::after { left: 0; top: 10px; width: 22px; height: 2px; }
+  #prompt { position: absolute; left: 50%; bottom: 24%; transform: translateX(-50%); font-size: 17px; font-weight: 700; background: rgba(8,12,28,.7); padding: 8px 16px; border-radius: 6px; border: 1px solid rgba(255,255,255,.25); text-shadow: 0 1px 3px #000; white-space: nowrap; }
+  #prompt .key { display: inline-block; background: #ffb020; color: #111; border-radius: 4px; padding: 1px 8px; margin-right: 6px; font-weight: 800; }
+  #banner { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); text-align: center; text-shadow: 0 3px 12px rgba(0,0,0,.9); }
+  #banner-title { font-size: 44px; font-weight: 900; letter-spacing: 3px; color: #ffb020; }
+  #banner-sub { font-size: 18px; font-weight: 600; color: #fff; margin-top: 4px; }
+  #feed { position: absolute; left: 16px; bottom: 110px; font-size: 14px; font-weight: 600; text-shadow: 0 1px 4px #000; }
+  #feed div { margin-top: 3px; opacity: .95; }
+  #damage-vignette { position: fixed; inset: 0; pointer-events: none; z-index: 6; opacity: 0; background: radial-gradient(ellipse at center, transparent 55%, rgba(200,0,0,.55) 100%); transition: opacity .15s; }
+  /* ---------- Screens ---------- */
+  .screen { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #fff; }
+  #start-screen { background: linear-gradient(180deg, rgba(6,10,26,.25) 0%, rgba(6,10,26,.55) 55%, rgba(6,10,26,.92) 100%); }
+  #start-screen h1 { margin: 0; font-size: 84px; font-weight: 900; letter-spacing: 6px; color: #ffb020; text-shadow: 0 4px 0 #7a3d00, 0 8px 30px rgba(0,0,0,.8); }
+  #start-screen h1 span { color: #fff; }
+  #start-screen h2 { margin: 6px 0 0; font-size: 20px; font-weight: 600; letter-spacing: 4px; color: #ffe9b0; text-shadow: 0 2px 8px #000; }
+  #start-screen p.story { max-width: 560px; font-size: 16px; line-height: 1.5; color: #e8ecff; text-shadow: 0 1px 4px #000; margin: 18px 0 6px; }
+  .menu-btn { pointer-events: auto; cursor: pointer; margin-top: 14px; font-size: 20px; font-weight: 800; letter-spacing: 2px; color: #111; background: #ffb020; border: none; border-radius: 8px; padding: 13px 42px; box-shadow: 0 4px 0 #7a3d00, 0 8px 24px rgba(0,0,0,.5); }
+  .menu-btn:hover { background: #ffc63e; }
+  .menu-btn.secondary { background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.5); box-shadow: none; font-size: 16px; padding: 10px 28px; }
+  #controls-box { margin-top: 22px; font-size: 14px; line-height: 1.7; color: #cfd6ff; background: rgba(8,12,28,.55); border: 1px solid rgba(255,255,255,.18); border-radius: 8px; padding: 10px 22px; text-shadow: 0 1px 3px #000; }
+  #controls-box b { color: #ffb020; }
+  #end-screen { background: rgba(10,4,4,.82); }
+  #end-screen h1 { margin: 0; font-size: 72px; font-weight: 900; letter-spacing: 8px; }
+  #end-screen.wasted h1 { color: #ff3b30; }
+  #end-screen.busted h1 { color: #4da3ff; }
+  #end-screen p { font-size: 18px; color: #eee; }
+  #pause-screen { background: rgba(6,10,26,.72); }
+  #pause-screen h1 { font-size: 56px; letter-spacing: 6px; margin: 0; }
+  #mission-complete { background: rgba(6,20,10,.78); }
+  #mission-complete h1 { font-size: 52px; color: #7dff9b; letter-spacing: 3px; margin: 0; }
+  #mission-complete p { font-size: 19px; }
+  #toast { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); z-index: 7; background: rgba(8,12,28,.8); border: 1px solid rgba(255,255,255,.3); padding: 10px 18px; border-radius: 8px; font-size: 16px; font-weight: 600; color: #fff; pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="hud-top-left">
+    <div id="cash">$<span id="cash-num">0</span> <small>SOLARA HEAT</small></div>
+    <div id="objective"><b id="objective-title">FREE ROAM</b><br><span id="objective-text">Explore Port Solara. Steal a car, cause trouble, or start a mission.</span> <span class="dist" id="objective-dist"></span></div>
+  </div>
+  <div id="wanted"><span class="star" data-s="1">&#9733;</span><span class="star" data-s="2">&#9733;</span><span class="star" data-s="3">&#9733;</span><span class="star" data-s="4">&#9733;</span><span class="star" data-s="5">&#9733;</span></div>
+  <div id="clock"><span id="clock-time">18:42</span><br><span id="clock-day">DAY 1 · PORT SOLARA</span></div>
+  <div id="health-wrap">
+    <div id="health-label">HEALTH</div>
+    <div id="health-bar"><div id="health-fill"></div></div>
+    <div id="ammo">&#9679; PISTOL <span id="ammo-num">12 / 48</span></div>
+  </div>
+  <div id="speed" class="hidden"><div id="speed-num">0</div><div id="speed-unit">KM/H</div></div>
+  <canvas id="minimap" width="200" height="200"></canvas>
+  <div id="crosshair" class="hidden"></div>
+  <div id="prompt" class="hidden"></div>
+  <div id="banner" class="hidden"><div id="banner-title"></div><div id="banner-sub"></div></div>
+  <div id="feed"></div>
+</div>
+<div id="damage-vignette"></div>
+<div id="toast" class="hidden"></div>
+
+<div id="start-screen" class="screen">
+  <h1>SOLARA <span>HEAT</span></h1>
+  <h2>AN OPEN-WORLD CRIME STORY · PORT SOLARA</h2>
+  <p class="story">Mara Voss came home to Port Solara to drive getaway cars and stay out of
+  trouble. The city had other plans. Steal cars, outrun the Port Solara Police,
+  run jobs for Dario — and take the big score.</p>
+  <button class="menu-btn" id="btn-start">START ENGINE</button>
+  <button class="menu-btn secondary hidden" id="btn-continue">CONTINUE — <span id="continue-label"></span></button>
+  <div id="controls-box">
+    <b>W A S D</b> move / drive &nbsp;·&nbsp; <b>MOUSE</b> drag to look &nbsp;·&nbsp; <b>SHIFT</b> sprint<br>
+    <b>E</b> steal / enter car &nbsp;·&nbsp; <b>SPACE</b> jump / handbrake &nbsp;·&nbsp; <b>CLICK</b> shoot &nbsp;·&nbsp; <b>F</b> punch<br>
+    <b>R</b> reload &nbsp;·&nbsp; <b>M</b> start next mission &nbsp;·&nbsp; <b>P / ESC</b> pause &nbsp;·&nbsp; <b>H</b> horn
+  </div>
+</div>
+
+<div id="end-screen" class="screen hidden wasted">
+  <h1 id="end-title">WASTED</h1>
+  <p id="end-sub">The streets of Port Solara claim another one.</p>
+  <button class="menu-btn" id="btn-retry">TRY AGAIN</button>
+  <button class="menu-btn secondary" id="btn-end-menu">MAIN MENU</button>
+</div>
+
+<div id="pause-screen" class="screen hidden">
+  <h1>PAUSED</h1>
+  <p style="font-size:17px">Port Solara waits for no one. Except now.</p>
+  <button class="menu-btn" id="btn-resume">RESUME</button>
+  <button class="menu-btn secondary" id="btn-quit">SAVE &amp; QUIT TO MENU</button>
+</div>
+
+<div id="mission-complete" class="screen hidden">
+  <h1 id="mc-title">JOB DONE</h1>
+  <p id="mc-sub"></p>
+  <button class="menu-btn" id="btn-mc-continue">KEEP DRIVING</button>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
