@@ -147,7 +147,8 @@ if (saved && saved.cash !== undefined) {
 G.addHeat = function (amount, reason) {
   G.police.addHeat(amount, G);
   G.hud.updateWanted(G.police.stars);
-  if (reason && G.police.stars > 0) G.hud.setObjectiveDist(0, null);
+  // (No objective-distance touch here: the mission system owns that field,
+  // and stamping it with 0m on every crime hid the real target distance.)
 };
 
 G.busted = function () {

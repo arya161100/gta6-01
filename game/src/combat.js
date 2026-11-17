@@ -69,7 +69,6 @@ export class Combat {
     this.ammo--;
     this.fireCooldown = 0.22;
     this.game.audio.gunshot();
-    // Muzzle flash light (brief).
     // Find the closest hittable thing along the ray.
     const origin = new THREE.Vector3(from.x, from.y, from.z);
     const direction = new THREE.Vector3(dir.x, dir.y, dir.z).normalize();
